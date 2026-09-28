@@ -104,3 +104,28 @@ src/
 
 See `DECISION.md` and the contract's own header comment in the original submission for the full
 design rationale.
+
+
+## Troubleshooting
+
+### `NonceTooHigh(expected=219,actual=1699)` when creating a vault or depositing
+
+The transaction was rejected by the node before it reached the contract, so nothing was written.
+It means the wallet's cached transaction count for this network (1699) is ahead of the node's
+(219). Causes: a Studio/local network reset, or the same account having been used on another
+network with the same chain id.
+
+The app now also switches (or adds) the GenLayer network in an injected wallet before every
+write, so a wallet left on a different network can no longer stamp a foreign nonce.
+
+Fix if it still happens: reset the wallet's cached nonce for this network (MetaMask: Settings > Advanced > Clear
+activity tab data; Rabby: Settings > Clear Pending), confirm the wallet is on the same GenLayer
+network as `VITE_GENLAYER_NETWORK`, then retry. The built-in wallet is not affected. The app now
+shows this guidance in the error toast instead of the raw RPC error.
+
+### Network handling on wallet connect
+
+When an injected wallet is connected, the app immediately asks it to switch to the GenLayer network
+set by `VITE_GENLAYER_NETWORK` (default: StudioNet). If the network isn't in the wallet yet, the
+wallet shows its "Add network" popup; if it is, the wallet switches automatically. The same check
+runs again before every transaction.
