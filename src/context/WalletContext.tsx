@@ -10,7 +10,7 @@ import {
   unlockStoredWallet,
 } from "../lib/wallet";
 import type { Signer, WalletMode } from "../lib/types";
-import { readClientBalance } from "../lib/client";
+import { readClientBalance, ensureWalletOnActiveChain } from "../lib/client";
 import { discoverInjectedWallets } from "../lib/injectedWallets";
 import type { Eip1193Provider, InjectedWallet } from "../lib/injectedWallets";
 
@@ -203,6 +203,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           method: "eth_requestAccounts",
         })) as string[];
         if (!accounts?.[0]) throw new Error("No account was returned by the wallet.");
+        // Right after the account is approved: if the GenLayer network isn't in the wallet yet,
+        // the wallet shows its "Add network" popup; if it's already there, the wallet is switched
+        // to it automatically. Done before we mark the wallet as connected, so a rejected popup
+        // leaves the app disconnected rather than half-connected on the wrong network.
+        await ensureWalletOnActiveChain(chosen.provider);
         setAddress(accounts[0] as `0x${string}`);
         setPrivateKey(null);
         setInjectedProvider(chosen.provider);
